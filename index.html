@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hold-172 — İnsan Onayı (iOS Tam Ekran)</title>
+<meta name="color-scheme" content="dark">
+<style>
+  :root{
+    --bg:#0b0f12; --panel:#11161c; --text:#e0e7ee; --muted:#8a97a3;
+    --ring:#6ea8ff; --ring-bg:#223242; --accent:#e7f0f7; --ok:#8fffac;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    -webkit-touch-callout:none; -webkit-user-select:none; user-select:none;
+    touch-action:none; overscroll-behavior:none;}
+  .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px;position:relative}
+  .card{width:min(560px,94vw);background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.02));
+    border:1px solid #1b2430;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03);padding:18px}
+  h1{font-size:18px;margin:0 0 6px 0}
+  p.lead{margin:0 0 12px 0;color:var(--muted)}
+  .ringbox{display:grid;place-items:center;margin:8px 0 8px}
+  .ring{width:260px;height:260px;display:grid;place-items:center;position:relative}
+  .ring svg{transform:rotate(-90deg);filter:drop-shadow(0 6px 18px rgba(24,120,255,0.15))}
+  .label{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font-variant-numeric:tabular-nums}
+  .big{font-size:42px;font-weight:800}
+  .small{font-size:12px;color:var(--muted);margin-top:4px}
+  .panel{background:var(--panel);border:1px solid #1a2230;border-radius:12px;padding:14px}
+  .cta{display:block;width:100%;background:var(--accent);color:#0a0f13;border:none;border-radius:12px;
+    padding:16px 14px;font-weight:800;letter-spacing:.3px}
+  .state{margin-top:8px;font-size:12px;color:var(--muted)}
+  .state.on{color:#a5f2c7}
+  .bar{height:8px;background:var(--ring-bg);border-radius:8px;overflow:hidden;margin-top:10px}
+  .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg, var(--ring), #8fb7ff)}
+  .row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .ghost{flex:1;background:#0f1419;color:var(--text);border:1px solid #223142;border-radius:10px;padding:10px;cursor:pointer}
+  .success{display:none;margin-top:12px;padding:12px;border-radius:12px;background:rgba(23,189,112,.07);border:1px solid rgba(23,189,112,.25);color:#a8f3cf}
+  .success.show{display:block}
+  .overlay{position:fixed;inset:0;z-index:5;background:transparent;}
+  footer{margin-top:10px;color:var(--muted);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="overlay" class="overlay" aria-hidden="true"></div>
+  <main class="card" role="main" aria-labelledby="title">
+    <h1 id="title">CM1004K // İnsan Onayı — Hold-172</h1>
+    <p class="lead">Ekrana <b>basılı tut</b>. Bırakırsan sıfırlanır. iPhone için tüm ekran geçerlidir.</p>
+
+    <section class="ringbox" aria-live="polite">
+      <div class="ring" aria-label="İlerleme halkası">
+        <svg width="260" height="260" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="45" fill="none" stroke="var(--ring-bg)" stroke-width="8"/>
+          <circle id="fg" cx="50" cy="50" r="45" fill="none" stroke="var(--ring)" stroke-width="8"
+                  stroke-linecap="round" stroke-dasharray="282.743" stroke-dashoffset="282.743"/>
+        </svg>
+        <div class="label">
+          <div class="big" id="time">01:30</div>
+          <div class="small">tüm ekrana basılı tut</div>
+        </div>
+      </div>
+      <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+    </section>
+
+    <section class="panel">
+      <button id="cta" class="cta" aria-pressed="false">İstersen butona da basılı tut</button>
+      <div id="state" class="state">Durum: <b>TUTULMUYOR</b></div>
+      <div class="row">
+        <button class="ghost" id="test15">Test: 15s</button>
+        <button class="ghost" id="live90">Canlı: 90s</button>
+        <button class="ghost" id="reset">Sıfırla</button>
+      </div>
+      <div id="done" class="success" role="status" aria-live="assertive">
+        ✅ Human-Override kaydedildi: <b>172 → PROVISIONAL/ALLY</b>
+      </div>
+    </section>
+    <footer><small>İpucu: URL’ye <b>?d=15</b> eklersen test süresi 15 sn olur.</small></footer>
+  </main>
+</div>
+
+<script>
+(function(){
+  // iOS: bağlam menüsü/zoom engelle
+  document.addEventListener('contextmenu', e=>e.preventDefault());
+  document.addEventListener('gesturestart', e=>e.preventDefault());
+
+  let DURATION = 90; // seconds
+  const fg = document.getElementById('fg');
+  const timeEl = document.getElementById('time');
+  const bar = document.getElementById('bar');
+  const cta = document.getElementById('cta');
+  const done = document.getElementById('done');
+  const stateEl = document.getElementById('state');
+  const testBtn = document.getElementById('test15');
+  const liveBtn = document.getElementById('live90');
+  const resetBtn = document.getElementById('reset');
+  const overlay = document.getElementById('overlay');
+
+  const CIRC = 2*Math.PI*45;
+  fg.setAttribute('stroke-dasharray', CIRC);
+  fg.style.strokeDashoffset = CIRC;
+
+  let holding = false, startTs = 0, heldMs = 0, rafId = null;
+
+  function fmt(sec){
+    sec = Math.max(0, Math.ceil(sec));
+    const m = String(Math.floor(sec/60)).padStart(2,'0');
+    const s = String(sec%60).padStart(2,'0');
+    return `${m}:${s}`;
+  }
+  function setState(on){
+    holding = on;
+    stateEl.classList.toggle('on', on);
+    stateEl.innerHTML = 'Durum: <b>'+(on?'TUTULUYOR':'TUTULMUYOR')+'</b>';
+    cta.setAttribute('aria-pressed', on?'true':'false');
+  }
+  function paint(){
+    const ratio = Math.min(1, heldMs/(DURATION*1000));
+    fg.style.strokeDashoffset = CIRC*(1-ratio);
+    bar.style.width = (ratio*100).toFixed(2)+'%';
+    timeEl.textContent = fmt(DURATION - heldMs/1000);
+  }
+  function tick(){
+    if(!holding) return;
+    heldMs = performance.now() - startTs;
+    if(heldMs >= DURATION*1000){
+      setState(false);
+      cancelAnimationFrame(rafId);
+      paint();
+      done.classList.add('show');
+      cta.disabled = true;
+      overlay.style.pointerEvents = 'none';
+      return;
+    }
+    paint();
+    rafId = requestAnimationFrame(tick);
+  }
+  function startHold(){
+    if(document.hidden || cta.disabled) return;
+    done.classList.remove('show');
+    startTs = performance.now();
+    heldMs = 0;
+    setState(true);
+    overlay.style.pointerEvents = 'auto';
+    rafId = requestAnimationFrame(tick);
+  }
+  function endHold(){
+    if(!holding) return;
+    setState(false);
+    cancelAnimationFrame(rafId);
+    heldMs = 0;
+    paint();
+  }
+  function reset(){
+    cancelAnimationFrame(rafId);
+    heldMs = 0;
+    paint();
+    done.classList.remove('show');
+    cta.disabled = false;
+    overlay.style.pointerEvents = 'auto';
+    setState(false);
+  }
+  function setDuration(sec){
+    DURATION = sec;
+    timeEl.textContent = fmt(DURATION);
+    reset();
+  }
+
+  // Fullscreen listeners (iOS safe)
+  function bindTouch(target){
+    target.addEventListener('touchstart', (e)=>{ e.preventDefault(); startHold(); }, {passive:false});
+    target.addEventListener('touchend',   (e)=>{ e.preventDefault(); endHold(); },   {passive:false});
+    target.addEventListener('touchcancel',(e)=>{ e.preventDefault(); endHold(); },   {passive:false});
+  }
+  bindTouch(document.body);
+  bindTouch(overlay);
+  bindTouch(cta);
+
+  // Pointer fallback (no pointerleave end!)
+  const down = ()=>{ startHold(); };
+  const up = ()=>{ endHold(); };
+  overlay.addEventListener('pointerdown', e=>{ e.preventDefault(); down(); });
+  overlay.addEventListener('pointerup',   e=>{ e.preventDefault(); up(); });
+  cta.addEventListener('pointerdown', e=>{ e.preventDefault(); down(); });
+  cta.addEventListener('pointerup',   e=>{ e.preventDefault(); up(); });
+
+  // Keyboard
+  let keyOn=false;
+  window.addEventListener('keydown', e=>{
+    if(e.code==='Space' || e.code==='Enter'){ e.preventDefault(); if(!keyOn){ keyOn=true; startHold(); } }
+  });
+  window.addEventListener('keyup', e=>{
+    if(e.code==='Space' || e.code==='Enter'){ e.preventDefault(); keyOn=false; endHold(); }
+  });
+
+  // Visibility
+  document.addEventListener('visibilitychange', ()=>{ if(document.hidden) endHold(); });
+  window.addEventListener('blur', ()=> endHold());
+
+  // Buttons
+  testBtn.addEventListener('click', ()=> setDuration(15));
+  liveBtn .addEventListener('click', ()=> setDuration(90));
+  resetBtn.addEventListener('click', ()=> reset());
+
+  // URL param
+  const sp = new URLSearchParams(location.search);
+  const d = parseInt(sp.get('d') || sp.get('duration'),10);
+  if(!isNaN(d) && d>0){ setDuration(d); } else { paint(); }
+})();
+</script>
+</body>
+</html>
